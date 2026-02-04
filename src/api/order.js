@@ -30,13 +30,8 @@ export function getOrderById(id) {
  */
 export function assignOrder(data) {
   return request({
-    url: `/orders/${data.id}/dispatch`,
+    url: `/orders/${data.id}/dispatch/${data.moverId}`,
     method: "POST",
-    // 文档显示请求类型为 application/x-www-form-urlencoded
-    // 在 axios 中，如果是这种类型且参数简单，可以用 params 挂载在 URL 后
-    params: {
-      moverId: data.moverId,
-    },
   });
 }
 

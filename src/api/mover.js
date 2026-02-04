@@ -34,3 +34,32 @@ export function updateMover(data) {
     data,
   });
 }
+
+// 5. 分页查询搬家师傅申请信息
+export function getMoverApplyPage(params) {
+  return request({
+    url: "/mover/apply/page",
+    method: "get",
+    params,
+  });
+}
+
+// 6. 通过申请
+export function approveMoverApply(id) {
+  return request({
+    url: `/mover/apply/${id}/approve`,
+    method: "post",
+  });
+}
+
+// 7. 拒绝申请
+export function rejectMoverApply(id, rejectionReason) {
+  return request({
+    url: `/mover/apply/${id}/reject`, // PathVariable 对应路径
+    method: "post",
+    // 关键点：将理由包装在对象中，Key 必须和后端 DTO 的属性名一致
+    data: {
+      rejectReason: rejectionReason,
+    },
+  });
+}
