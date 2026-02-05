@@ -80,20 +80,25 @@
 
         <el-table-column prop="orderCount" label="完成订单数" align="center" width="140" />
 
-        <el-table-column label="当前状态" align="center" width="120">
-          <template #default="{ row }">
-            <el-tag :type="statusMap[row.status].type">
-              {{ statusMap[row.status].label }}
-            </el-tag>
-          </template>
-        </el-table-column>
+<el-table-column label="当前状态" align="center" width="120">
+  <template #default="{ row }">
+    <el-tag :type="statusMap[row.status]?.type || 'info'">
+      {{ statusMap[row.status]?.label || '未知' }}
+    </el-tag>
+  </template>
+</el-table-column>
 
-        <el-table-column label="账号状态" align="center" width="120">
-          <template #default="{ row }">
-            <el-switch v-model="row.status" :active-value="1" :inactive-value="0"
-              :before-change="() => handleBeforeStatusChange(row)" :disabled="row.status === 2" />
-          </template>
-        </el-table-column>
+<el-table-column label="账号状态" align="center" width="120">
+  <template #default="{ row }">
+    <el-switch 
+      :model-value="row.status !== 0" 
+      :active-value="true"
+      :inactive-value="false"
+      :before-change="() => handleBeforeStatusChange(row)" 
+      :disabled="row.status === 2" 
+    />
+  </template>
+</el-table-column>
 
         <el-table-column prop="createTime" label="加入时间" align="center" min-width="100" />
 
@@ -232,28 +237,43 @@ const updateApplyCount = async () => {
 };
 
 const handleBeforeStatusChange = (row) => {
+  // 健壮性检查：如果已经是忙碌状态，直接拦截
   if (row.status === 2) {
     ElMessage.warning('忙碌中的师傅不可禁用');
     return false;
   }
+
+  // 这里的逻辑是：如果当前是 1(空闲)，则目标是 0(禁用)；反之亦然
   const targetStatus = row.status === 1 ? 0 : 1;
   const text = targetStatus === 1 ? '启用' : '禁用';
 
   return new Promise((resolve, reject) => {
     ElMessageBox.confirm(`确定要${text}该师傅账号吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
       type: 'warning',
     })
       .then(async () => {
         try {
-          // 注意参数顺序：status, id (根据你api文件的定义)
-          await updateMoverStatus(targetStatus, row.id);
-          ElMessage.success(`${text}成功`);
-          resolve(true);
+          // 调用 API 更新状态
+          const res = await updateMoverStatus(targetStatus, row.id);
+          if (res.code === 1) {
+            ElMessage.success(`${text}成功`);
+            // 手动更新当前行数据，避免重新加载整个列表的闪烁
+            row.status = targetStatus; 
+            resolve(true);
+          } else {
+            ElMessage.error(res.msg || '操作失败');
+            reject(false);
+          }
         } catch (err) {
           reject(false);
         }
       })
-      .catch(() => reject(false));
+      .catch(() => {
+        // 用户点击取消
+        reject(false);
+      });
   });
 };
 
